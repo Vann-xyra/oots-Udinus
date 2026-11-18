@@ -1,43 +1,57 @@
+
 <script lang="ts">
-	import type { Project } from '$lib/data';
+  import type { Project } from '$lib/data';
 
-	type Props = {
-		project: Project;
-		index: number;
-	};
-
-	let { project, index }: Props = $props();
+  let { project }: { project: Project } = $props();
 </script>
 
-<div class="flex flex-col gap-2.5 py-7">
-	<div class="flex items-center justify-between">
-		<span class="font-mono text-[11px] tracking-[1.1px]">
-			{String(index + 1).padStart(2, '0')}
-		</span>
+<article class="project-row project-row-no-image">
+  <span class="project-number">
+    {project.number}
+  </span>
 
-		<div class="flex items-center gap-5">
-			<span class="font-mono text-[11px] tracking-[1.1px] uppercase">{project.stack}</span>
-			<span class="font-mono text-[11px] tracking-[1.1px]">{project.year}</span>
+  <div class="min-w-0">
+    <div class="project-heading">
+      <h3>{project.title}</h3>
+      <span>{project.category}</span>
+    </div>
 
-			{#if project.href}
-				<a href={project.href} aria-label="Buka {project.title}" class="text-primary">
-					<svg
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M7 17 17 7M9 7h8v8" />
-					</svg>
-				</a>
-			{/if}
-		</div>
-	</div>
+    <p class="project-description">
+      {project.description}
+    </p>
 
-	<h2 class="text-[28px] leading-[1.15] font-medium tracking-[-0.5px]">{project.title}</h2>
-	<p class="text-[15px] leading-[1.55] text-muted">{project.description}</p>
-</div>
+    <div class="project-tags">
+      {#each project.tags as tag}
+        <span>{tag}</span>
+      {/each}
+    </div>
+
+    <a
+      href={project.resultUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="project-link"
+    >
+      {project.resultLabel} ↗
+    </a>
+  </div>
+</article>
+
+<style>
+  .project-row-no-image {
+    grid-template-columns: 55px minmax(0, 1fr);
+    min-width: 0;
+  }
+
+  .project-row-no-image > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 760px) {
+    .project-row-no-image {
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 12px;
+    }
+  }
+</style>

@@ -1,52 +1,61 @@
 import { fail } from '@sveltejs/kit';
-import { RESEND_API_KEY, RESEND_TO } from '$app/env/private';
 import type { Actions } from './$types';
+import { Resend } from 'resend';
+import {
+  RESEND_API_KEY,
+  RESEND_TO,
+  RESEND_FROM
+} from '$app/env/private';
 
-export const actions = {
-	kirim: async ({ request }) => {
-		const data = await request.formData();
 
-		const nama = String(data.get('nama') ?? '').trim();
-		const email = String(data.get('email') ?? '').trim();
-		const pesan = String(data.get('pesan') ?? '').trim();
+export const actions: Actions = {
+  kirim: async ({ request }) => {
+    const formData = await request.formData();
 
-		if (!nama || !email || !pesan) {
-			return fail(400, { pesan: 'Semua kolom harus diisi.' });
-		}
+    const nama = String(formData.get('nama') ?? '').trim();
+    const email = String(formData.get('email') ?? '').trim();
+    const pesan = String(formData.get('pesan') ?? '').trim();
 
-		if (!email.includes('@')) {
-			return fail(400, { pesan: 'Format email belum benar.' });
-		}
+    if (!nama || !email || !pesan) {
+      return fail(400, {
+        message: 'Semua kolom wajib diisi.'
+      });
+    }
 
-		const kunci = RESEND_API_KEY;
-		const tujuan = RESEND_TO;
+    if (!RESEND_API_KEY || !RESEND_TO) {
+      return fail(500, {
+        message: 'Konfigurasi email belum tersedia.'
+      });
+    }
 
-		if (!kunci || !tujuan) {
-			return fail(500, { pesan: 'Kunci Resend belum dipasang di .env.' });
-		}
+    try {
+      const resend = new Resend(RESEND_API_KEY);
 
-		const balasan = await fetch('https://api.resend.com/emails', {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${kunci}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				// Resend hanya mengizinkan pengirim ini selama domain kalian
-				// belum diverifikasi.
-				from: 'Portofolio <onboarding@resend.dev>',
-				to: [tujuan],
-				reply_to: email,
-				subject: `Pesan dari ${nama}`,
-				text: `${pesan}\n\n— ${nama} <${email}>`
-			})
-		});
+      const { error } = await resend.emails.send({
+        from: RESEND_FROM || 'Portfolio <onboarding@resend.dev>',
+        to: [RESEND_TO],
+        replyTo: email,
+        subject: `Pesan portfolio dari ${nama}`,
+        text: `Nama: ${nama}\nEmail: ${email}\n\nPesan:\n${pesan}`
+      });
 
-		if (!balasan.ok) {
-			console.error('Resend menolak:', balasan.status, await balasan.text());
-			return fail(502, { pesan: 'Gagal mengirim. Coba lagi.' });
-		}
+      if (error) {
+        console.error('Resend error:', error);
 
-		return { sukses: true };
-	}
-} satisfies Actions;
+        return fail(500, {
+          message: 'Pesan gagal dikirim.'
+        });
+      }
+
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('Contact form error:', error);
+
+      return fail(500, {
+        message: 'Terjadi kesalahan saat mengirim pesan.'
+      });
+    }
+  }
+};
